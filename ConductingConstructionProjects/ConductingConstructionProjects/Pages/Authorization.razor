@@ -1,0 +1,114 @@
+﻿@page "/AuthForm"
+@inject AuthPerson authPerson
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+<h3>Authorization</h3>
+
+<div class="container-fluid">
+    <div class="row">Login: </div> <input @bind=@temp_person.Login/>
+        <div hidden="@(IsFindAccount)" style="color: red">Такой аккаунт отсутствует!</div>
+        <br />
+        <div class="row">Password: </div> <input @bind=@temp_person.Password/>
+        <div hidden="@(IsPasswordsRight)" style="color: red">Пароли не совпадают</div>
+        <div class="row">
+            <button class="active" @onclick="Authorise">Authorise</button>
+            <div hidden="@(!IsFormValid)" style="color: red"> @ErrorMessage
+            <div hidden="@(!IsFormValid)" style="color: green">Авторизация прошла успешно!
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    AuthPerson temp_person = new AuthPerson();
+    bool IsFindAccount = true;
+    bool IsPasswordsRight = true;
+    bool IsFormValid = false;
+    bool IsHaveError = false;
+    EditContext Taked_Context;
+    string ErrorMessage = "";
+
+
+    private void Authorise()
+    {
+        IsHaveAuth();
+
+        if (IsHaveError == true)
+        {
+            goto g1;
+        }
+
+        IsFindAccount = IsHaveInLibrary();
+        if(IsFindAccount != false)
+        {
+            IsPasswordsRight = PasswordsCheckAccount();
+            if (IsPasswordsRight != false)
+            {
+                IsFormValid = true;
+                var client = new MongoClient("mongodb://localhost");
+                var database = client.GetDatabase("Conduting_lib");
+                var condut_lib = database.GetCollection<AuthPerson>("PersonsCollection");
+                AuthPerson find = condut_lib.Find(x => x.Login == temp_person.Login).FirstOrDefault();
+                authPerson.CloneFrom(find);
+                OnInitialized();
+            }
+        }
+
+    g1:
+        {}
+    }
+
+    private void IsHaveAuth()
+    {
+        if (authPerson.Login != null)
+        {
+            IsHaveError = true;
+            ErrorMessage = "Вы уже авторизованы! Покиньте аккаунт через кабинет или меню";
+        }
+        else
+        {
+            IsHaveError = false;
+        }
+    }
+
+
+    private bool IsHaveInLibrary()
+    {
+        bool answer = false;
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var condut_lib = database.GetCollection<AuthPerson>("PersonsCollection");
+        AuthPerson find = condut_lib.Find(x => x.Login == temp_person.Login).FirstOrDefault();
+
+        if (find != null)
+        {
+            answer = true;
+        }
+
+        return answer;
+    }
+
+    private bool PasswordsCheckAccount()
+    {
+        bool answer = false;
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var condut_lib = database.GetCollection<AuthPerson>("PersonsCollection");
+        AuthPerson find = condut_lib.Find(x => x.Login == temp_person.Login).FirstOrDefault();
+
+        if (find.Password == temp_person.Password)
+        {
+            answer = true;
+        }
+
+        return answer;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+}

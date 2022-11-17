@@ -1,0 +1,150 @@
+﻿@page "/CabinetEditor"
+@inject AuthPerson authPerson
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+<h3>Cabinet</h3>
+
+<div class="container-fluid">
+    <div>
+        <div class="row">Login: @authPerson.Login</div>
+        <br />
+        <div class="row">Password: <input @bind="authPerson.Password" /></div>
+        <br />
+        <div class="row">Email: <input @bind="authPerson.Email" /></div>
+        <br />
+        <div class="row">FirstPhoneNum: <input @bind="authPerson.FirstPhoneNum" /></div>
+        <br />
+        <br />
+
+    </div>
+
+    
+
+    @switch (authPerson.Role)
+    {
+        case "Застройщик":
+            <div>
+                <div class="row">Org_Name: <input @bind="taked_builder.Org_Name" /></div>
+                <br />
+                <div class="row">InEter_RegNum: <input @bind="taked_builder.InEter_RegNum" /></div>
+                <br />
+                <div class="row">Tax_IdNum: <input @bind="taked_builder.Tax_IdNum" /></div>
+                <br />
+                <div class="row">KPP: <input @bind="taked_builder.KPP" /></div>
+                <br />
+                <div class="row">Address: <input @bind="taked_builder.Address" /></div>
+                <br />
+                <div class="row">Director_Name: <input @bind="taked_builder.Director_Name" /></div>
+                <br />
+            </div>
+            break;
+        case "Проектировщик":
+            <div class="row">Org_Name: <input @bind="taked_architect.Org_Name" /></div>
+            <br />
+            <div class="row">InEter_RegNum: <input @bind="taked_architect.InEter_RegNum" /></div>
+            <br />
+            <div class="row">Tax_IdNum: <input @bind="taked_architect.Tax_IdNum" /></div>
+            <br />
+            <div class="row">KPP: <input @bind="taked_architect.KPP" /></div>
+            <br />
+            <div class="row">Address: <input @bind="taked_architect.Address" /></div>
+            <br />
+            <div class="row">Director_Name: <input @bind="taked_architect.Director_Name" /></div>
+            <br />
+            <div class="row">MainEngineer_Name: <input @bind="taked_architect.MainEngineer_Name" /></div>
+            <br />
+            break;
+        case "Заказчик":
+            @if (taked_consumer.Department == null)
+            {
+                <div> Department: </div>
+                <select @bind="@(taked_consumer.Department)">
+                    @foreach (var dep in departments)
+                    {
+                        <option value="@(taked_consumer.Department)">@dep</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <div> Department: </div>
+                <div> @(taked_consumer.Department) </div>
+            }
+            
+            <div class="row">Post: <input @bind="taked_consumer.Post" /></div>
+            <br />
+            break;
+    }
+
+    <button @onclick="AcceptSaving" class="active"> Save Information </button>
+    <br />
+    <button @onclick="SaveInfo" hidden="@(!IsAcceptEdit)" class="active"> A you sure? </button>
+</div>
+
+@code {
+    List<string> departments = new List<string>
+    {"", "Водоснабжение", "Газоснабжение"};
+    private bool IsAcceptEdit = false;
+    private string Editing = "Edit Info";
+    private bool EditingMode = false;
+    private Builder taked_builder = new Builder();
+    private Architect taked_architect = new Architect();
+    private Consumer taked_consumer = new Consumer();
+
+    private void AcceptSaving()
+    {
+        IsAcceptEdit = !IsAcceptEdit;
+    }
+
+    private void SaveInfo()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var person_lib = database.GetCollection<AuthPerson>("PersonsCollection");
+        person_lib.ReplaceOne(x => x._id == authPerson._id, authPerson);
+        switch (authPerson.Role)
+        {
+            case "Застройщик":
+                var build_lib = database.GetCollection<Builder>("BuilderCollection");
+                build_lib.ReplaceOne(x => x._id == taked_builder._id, taked_builder);
+                break;
+            case "Проектировщик":
+                var arch_lib = database.GetCollection<Architect>("ArchitectCollection");
+                arch_lib.ReplaceOne(x => x._id == taked_architect._id, taked_architect);
+                break;
+            case "Заказчик":
+                var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+                consum_lib.ReplaceOne(x => x._id == taked_consumer._id, taked_consumer);
+                break;
+        }
+
+        Navigation.NavigateTo("/Cabinet");
+    }
+
+    private void FindMoreInfo()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        switch (authPerson.Role)
+        {
+            case "Застройщик":
+                var build_lib = database.GetCollection<Builder>("BuilderCollection");
+                taked_builder = build_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+            case "Проектировщик":
+                var arch_lib = database.GetCollection<Architect>("ArchitectCollection");
+                taked_architect = arch_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+            case "Заказчик":
+                var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+                taked_consumer = consum_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        FindMoreInfo();
+        base.OnInitialized();
+    }
+}

@@ -1,0 +1,115 @@
+﻿@page "/StandForm"
+@inject UseProject UsingProject
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+@inject AuthPerson authPerson
+
+<h3>StandartForm</h3>
+<div class="row">
+    <div class="col">
+        <button class="align-middle" @onclick="BackToProject"> Back to the project </button>
+        <button class="align-middle" @onclick="SaveStandart"> Save the project </button>
+    </div>
+</div>
+
+@switch (UsingProject.Branch)
+{
+    case "Водоснабжение":
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col"> Name </th>
+                    <th scope="col"> Value </th>
+                </tr>
+            </thead>
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyLowDiameter: </td>
+                <td> <input @bind="temp_project.WaterStandart.LowDiameter[0]" /> <input @bind="temp_project.WaterStandart.LowDiameter[1]" /></td>
+            </tr>
+
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyEfficiencyBOS: </td>
+                <td> <input @bind="temp_project.WaterStandart.EfficiencyBOS" /> </td>
+            </tr>
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyEfficiencyKOS: </td>
+                <td> <input @bind="temp_project.WaterStandart.EfficiencyKOS[0]" /> <input @bind="temp_project.WaterStandart.EfficiencyKOS[1]" /></td>
+            </tr>
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyEfficiencyKOS: </td>
+                <td> <input @bind="temp_project.WaterStandart.CountsKOS[0]" /> <input @bind="temp_project.WaterStandart.CountsKOS[1]" /></td>
+            </tr>
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyEstimate: </td>
+                <td> <input @bind="temp_project.WaterStandart.Estimate" /> </td>
+            </tr>
+            <tr>
+                <td> @temp_project.WaterStandart.JustifyPeriod: </td>
+                <td> <input @bind="temp_project.WaterStandart.Period" /> </td>
+            </tr>
+        </table>
+        break;
+    case "Газоснабжение":
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col"> Name </th>
+                    <th scope="col"> Value </th>
+                </tr>
+            </thead>
+            <tr>
+                <td> @temp_project.GasStandart.JustifyLowDiameter: </td>
+                <td> <input @bind="temp_project.GasStandart.LowDiameter[0]" /> <input @bind="temp_project.GasStandart.LowDiameter[1]" /></td>
+            </tr>
+
+            <tr>
+                <td> @temp_project.GasStandart.JustifyInputDiameter: </td>
+                <td> <input @bind="temp_project.GasStandart.InputDiameter" /> </td>
+            </tr>
+            <tr>
+                <td> @temp_project.GasStandart.JustifyEstimate: </td>
+                <td> <input @bind="temp_project.GasStandart.Estimate" /> </td>
+            </tr>
+            <tr>
+                <td> @temp_project.GasStandart.JustifyPeriod: </td>
+                <td> <input @bind="temp_project.GasStandart.Period" /> </td>
+            </tr>
+        </table>
+        break;
+}
+
+@if(authPerson.Role == "Заказчик")
+{
+    <div>Confirmation of the plan  <button @onclick="ConfirmPlane">@(temp_project.PlanConfirmed)</button> </div>
+
+    
+}
+
+@code {
+    Project temp_project = new Project();
+
+    private void ConfirmPlane()
+    {
+        temp_project.PlanConfirmed = !temp_project.PlanConfirmed;
+    }
+
+    protected override void OnInitialized()
+    {
+        temp_project.CloneFrom(UsingProject);
+    }
+
+    private void BackToProject()
+    {
+        SaveStandart();
+        Navigation.NavigateTo("/projectPage");
+    }
+
+    private void SaveStandart()
+    {
+        UsingProject.Clone(temp_project);
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var projects_lib = database.GetCollection<Project>("ProjectsCollection");
+        projects_lib.ReplaceOne(x => x.Name == temp_project.Name, temp_project);
+    }
+
+}

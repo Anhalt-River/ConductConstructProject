@@ -1,0 +1,78 @@
+﻿@inherits LayoutComponentBase
+@inject AuthPerson authPerson
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+@page "/yep"
+<PageTitle>ConductingConstructionProjects</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @if (authPerson.Login != null)
+            {
+                <button @onclick="GoToTheCab">Log In</button>
+                <button @onclick="LogOut">Log Out</button>
+                <div> @(authPerson.Login) </div>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code
+{
+    protected override void OnInitialized()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var condut_lib = database.GetCollection<AuthPerson>("CondutingCollection");
+        AuthPerson find = condut_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+
+        if (find != null)
+        {
+            authPerson = new AuthPerson();
+            authPerson.Login = find.Login;
+            authPerson.Password = find.Password;
+            authPerson.Role = find.Role;
+            authPerson.Email = find.Email;
+            authPerson.FirstPhoneNum = find.FirstPhoneNum;
+        }
+    }
+
+    private void LogOut()
+    {
+        AuthPerson authPerson1 = new AuthPerson();
+        authPerson.CloneFrom(authPerson1);
+    }
+
+    private void GoToTheCab()
+    {
+        OnInitialized();
+        if (authPerson != null)
+        {
+            NavigateToCabinet();
+        }
+    }
+
+    private void NavigateToRegistrate()
+    {
+        Navigation.NavigateTo("/RegForm");
+    }
+
+    private void NavigateToAuthorizate()
+    {
+        Navigation.NavigateTo("/AuthForm");
+    }
+
+    private void NavigateToCabinet()
+    {
+        Navigation.NavigateTo("/Cabinet");
+    }
+}

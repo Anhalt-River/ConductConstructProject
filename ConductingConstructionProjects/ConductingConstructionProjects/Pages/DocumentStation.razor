@@ -1,0 +1,144 @@
+﻿@page "/DocStation"
+@inject UseProject useProject
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+<h3>DocumentStation</h3>
+
+<div class="row">
+    <div class="col"> 
+        <button @onclick="BackToTheProject"> Back to the project </button>
+        <br />
+        <div > Выберите, что нужный нормативный документ </div>
+        <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col"> Name </th>
+                        <th scope="col"> Apply </th>
+                    </tr>
+                </thead>
+                @foreach (var doc in AllDocs)
+                {
+                    <tr>
+                        <td> <div> @doc.CotroledDoc.Description</div> </td>
+                        <td> <button @onclick="@(() => ApplyDoc(doc))" type="submit" style="background-color: forestgreen"> Choose </button> </td>
+                    </tr>
+                }
+            </table>
+    </div>
+</div>
+
+@code {
+    bool IsDocHad = false;
+    List<DocCell> AllDocs = new List<DocCell>();
+
+    protected override void OnInitialized()
+    {
+        FillAllDocs();
+        RemoveOthers();
+    }
+
+    private void FillAllDocs()
+    {
+        switch (useProject.Branch)
+        {
+            case "Водоснабжение":
+                DocCell docCell = new DocCell(); docCell.CotroledDoc.Description =
+            " Акт обследования и выбора трассы сети водоснабжения";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Акт обследования и выбор места под проектируемую скважину";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Согласованный ситуационный план (М1:10000 или М1:25000) с нанесением источников воды (скважин,родников и т.п.), существующих водонапорных башен, предполагаемой трассой водопровода и места врезки в существующую сеть.";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " План населённого пункта в М 1:1000 или М 1:500 топографическая съемка)";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Технические условия на водоснабжение";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Технические условия на электроснабжение (для насосной станции первого или второго подъема) ";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Градостроительный план земельного участка";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Справка согласования с собственниками земельных участков";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Документ, подтверждающий проведение межевания с присвоением кадастрового номера земельного участка под строительство водопровода и сооружений на нем. ";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Заключение Органа Роспотребнадзора санитарно - эпидемиологической службы по отводу земельного участка и результат радиационного обследования. ";
+                AllDocs.Add(docCell);
+                docCell = new DocCell(); docCell.CotroledDoc.Description =
+                " Сведения о наличие водозаборных скважин (родников) на территории хозяйства.";
+                AllDocs.Add(docCell);
+                break;
+            case "Газоснабжение":
+                DocCell docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+            " Письмо-обращение на имя Президента, Премьер - Министра, Минстрой РТ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Задание на проектирование";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Ситуационный план (утвержденный исполкомом)";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Технические условия на присоединение к газораспределительной сети(№, дата, срок действий Технических условий) ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Технический паспорт (план БТИ) объекта СКБ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Технический паспорт (план БТИ) существующей котельной ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Градостроительный план земельного участка";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " АКТ обследования объекта ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Технические условия на сети электроснабжение, водоснабжения, водоотведения при установке БМК ";
+                AllDocs.Add(docCell2);
+                docCell2 = new DocCell(); docCell2.CotroledDoc.Description =
+                " Согласование посадки котельной";
+                break;
+        }
+        
+    }
+
+    private void RemoveOthers()
+    {
+        List<DocCell> Temp = new List<DocCell>();
+        Temp.AddRange(AllDocs);
+        foreach (var docCell in AllDocs)
+        { 
+            foreach (var had_docCell in useProject.Docs)
+            {
+                if (docCell.CotroledDoc.Description == had_docCell.CotroledDoc.Description)
+                {
+                    Temp.Remove(docCell);
+                }
+            }
+        }
+        AllDocs.Clear();
+        AllDocs.AddRange(Temp);
+    }
+
+    private void ApplyDoc(DocCell docCell)
+    {
+        AllDocs.Remove(docCell);
+        System.Timers.Timer timer = new System.Timers.Timer(2000);
+        useProject.Docs.Add(docCell);
+        Navigation.NavigateTo("/projectPage");
+    }
+
+    private void BackToTheProject()
+    {
+        Navigation.NavigateTo("/projectPage");
+    }
+}

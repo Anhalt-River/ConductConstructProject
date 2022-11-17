@@ -1,0 +1,241 @@
+﻿@using ConductingConstructionProjects.Models
+
+@page "/ListProjects"
+@inject AuthPerson authPerson
+@inject UseProject usingProject
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+
+<h3>CustomerProjects</h3>
+
+@switch (authPerson.Role)
+{
+    case "Застройщик":
+    <div class="row">
+        <div class="col">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col"> Name </th>
+                        <th scope="col"> Status </th>
+                        <th scope="col"> Open </th>
+                    </tr>
+                </thead>
+                @foreach (var proj in projects)
+                {
+                    <tr>
+                        <td> <div> @proj._id.ToString()</div> </td>
+                        <td> <div> @proj.Status </div> </td>
+                        <td> <button class="btn btn-danger" @onclick="@(() => GotoProject(proj))">Open project</button> </td>
+                    </tr>
+                }
+            </table>
+        </div>
+        <div class="col">
+            <div> sdsds </div>
+        </div>
+
+        <div class="col">
+            <div></div>
+        </div>
+    </div>
+        break;
+    case "Проектировщик":
+        <div class="row">
+            <div class="col">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col"> Name </th>
+                            <th scope="col"> Status </th>
+                            <th scope="col"> Open </th>
+                        </tr>
+                    </thead>
+                    @foreach (var proj in projects)
+                    {
+                        <tr>
+                            <td> <div> @proj._id.ToString()</div> </td>
+                            <td> <div> @proj.Status </div> </td>
+                            <td> <button class="btn btn-danger" @onclick="@(() => GotoProject(proj))">Open project</button> </td>
+                        </tr>
+                    }
+                </table>
+            </div>
+
+            <div class="col">
+                <div> sdsds </div>
+            </div>
+
+            <div class="col">
+                <div></div>
+            </div>
+        </div>
+        break;
+    case "Заказчик":
+        <div class="row">
+            <div class="col">
+                @if (branch != null)
+                {
+                    <button @onclick="CreateProject"> Create project </button>
+                }
+                else
+                {
+                    <div @onclick="GoToCab" class="btn-danger"> Вы должны обозначить отрасль для работы над проектами! </div>
+                }
+            </div>
+
+            <div class="col">
+                <div> sdsds </div>
+            </div>
+
+            <div class="col">
+                <div> sdsds </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col"> Name </th>
+                            <th scope="col"> Status </th>
+                            <th scope="col"> Open </th>
+                            @if(authPerson.Role == "Заказчик")
+                            {
+                                <th scope="col"> Delete project </th>
+                            }
+                            
+                        </tr>
+                    </thead>
+                    @foreach (var proj in projects)
+                    {
+                        <tr>
+                            <td> <div> @proj._id.ToString()</div> </td>
+                            <td> <div> @proj.Status </div> </td>
+                            <td> <button class="btn btn-danger" @onclick="@(() => GotoProject(proj))">Open project</button> </td>
+                            @if (authPerson.Role == "Заказчик")
+                            {
+                                <td> <button class="btn btn-danger" @onclick="@(() => DeleteProject(proj))"> Delete </button> </td>
+                            }
+                        </tr>
+                    }
+                </table>
+            </div>
+        </div>
+        break;
+    case null:
+        break;
+}
+
+
+@code {
+    String branch;
+    List<Project> projects = new List<Project>();
+
+    protected override void OnInitialized()
+    {
+        if(authPerson.Role == "Заказчик")
+        {
+            var clientT = new MongoClient("mongodb://localhost");
+            var databaseT = clientT.GetDatabase("Conduting_lib");
+            var consum_libT = databaseT.GetCollection<Consumer>("ConsumerCollection");
+            var taked_consumerT = consum_libT.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+            branch = taked_consumerT.Department;
+        }
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        string sranyi_branch = "";
+        if (authPerson.Role == "Заказчик")
+        {
+
+            var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+            var taked_consum = consum_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+            if (taked_consum == null)
+            {
+                goto g1;
+            }
+            sranyi_branch = taked_consum.Department;
+        }
+
+        var projects_lib = database.GetCollection<Project>("ProjectsCollection");
+        List<Project> temp_projects = projects_lib.Find(x => true).ToList();
+        temp_projects = projects_lib.Find(x => true).ToList();
+        foreach (var pr in temp_projects)
+        {
+            projects.Add(pr);
+        }
+        switch (authPerson.Role)
+        {
+            case "Застройщик":
+                foreach (Project pr in temp_projects)
+                {
+                    if (pr.Builder != authPerson.Login)
+                    {
+                        projects.Remove(pr);
+                    }
+                }
+                break;
+            case "Проектировщик":
+                foreach (Project pr in temp_projects)
+                {
+                    if (pr.Architect != authPerson.Login)
+                    {
+                        projects.Remove(pr);
+                    }
+                }
+                break;
+            case "Заказчик":
+                foreach (Project pr in temp_projects)
+                {
+                    if (pr.Consumer != authPerson.Login || sranyi_branch != pr.Branch)
+                    {
+                        projects.Remove(pr);
+                    }
+                }
+                break;
+        }
+
+    g1:
+        {}
+    }
+
+    private void GoToCab()
+    {
+        Navigation.NavigateTo("/Cabinet");
+    }
+
+    private void DeleteProject(Project project)
+    {
+        projects.Remove(project);
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var projects_lib = database.GetCollection<Project>("ProjectsCollection");
+        projects_lib.DeleteOne(x => x.Name == project.Name);
+    }
+
+    private void GotoProject(Project project)
+    {
+        usingProject.Clone(project);
+        Navigation.NavigateTo("/projectPage");
+    }
+
+    private void CreateProject()
+    {
+        var clientT = new MongoClient("mongodb://localhost");
+        var databaseT = clientT.GetDatabase("Conduting_lib");
+        var projects_libT = databaseT.GetCollection<Project>("ProjectsCollection");
+        Project project = new Project();
+        project.CloneFrom(usingProject);
+        projects_libT.InsertOne(project);
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+        var taked_consumer = consum_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+
+        usingProject.Consumer = authPerson.Login;
+        usingProject.Branch = taked_consumer.Department;
+        Navigation.NavigateTo("/projectPage");
+    }
+}

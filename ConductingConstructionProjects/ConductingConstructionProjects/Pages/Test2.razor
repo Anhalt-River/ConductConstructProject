@@ -1,0 +1,35 @@
+﻿@page "/blazorform2"
+@inject ILogger<Counter> logger
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="person" OnInvalidSubmit="OnInvalidSubmit" OnValidSubmit="OnSubmit">
+    <DataAnnotationsValidator  />
+    <ValidationSummary />
+    <label for="personLogin">
+        Введите имя
+    <InputText @bind-Value="person.Login" id="personLogin"></InputText>
+    <ValidationMessage For="@(() => person.Login)" />
+    </label>
+    <br/>
+    <label for="personPassword">
+        Введите возраст
+        <InputText @bind-Value="person.Password" id="personPassword" ParsingErrorMessage="Ошибка парсинга">></InputText>
+        <ValidationMessage For="@(() => person.Password)" />
+    </label>
+    <br />
+    <button type="submit">Отправить</button>
+</EditForm>
+@code
+{
+
+    Person person = new Person();
+
+    private void OnInvalidSubmit()
+    {
+        logger.LogInformation("Сработало событие OnInvalidSubmit");
+    }
+    private void OnSubmit()
+    {
+        logger.LogInformation("Сработало событие OnSubmit");
+    }
+}

@@ -1,0 +1,124 @@
+﻿@using System.ComponentModel.DataAnnotations
+@page "/RegForm"
+@inject ILogger<Counter> logger
+
+<EditForm EditContext="Taked_Context" OnSubmit="SubmitForm">
+    <DataAnnotationsValidator  />
+    <label for="personLogin">
+        Введите имя
+    <InputText @bind-Value="person.Login" id="personName"></InputText>
+    <ValidationMessage For="@(() => person.Login)" />
+    </label>
+    <br/>
+    <label for="personPassword">
+        Введите пароль
+    <InputText @bind-Value="person.Password" id="personPassword"></InputText>
+    <ValidationMessage For="@(() => person.Password)" />
+    </label>
+    <br />
+
+    <label for="personEmail">
+        Введите почту
+    <InputText @bind-Value="person.Email" id="personEmail"></InputText>
+    <ValidationMessage For="@(() => person.Email)" />
+    </label>
+    <br />
+    <label for="personRole">
+        Введите статус
+        <select @bind="@person.Role" id="personRole">
+            @foreach(var role in roles)
+            {
+                <option value="@person.Role">@role</option>
+            }
+        </select>
+    </label>
+    <br />
+
+    <button type="submit" disabled="@IsFormValid">Отправить</button>
+
+    <div hidden="@(!IsFormValid)">Регистрация успешно прошла!</div>
+</EditForm>
+
+@code {
+    bool IsFormValid;
+    EditContext Taked_Context;
+
+    AuthPerson person = new AuthPerson();
+
+    List<string> roles = new List<string>
+    {"", "Проектировщик", "Заказчик", "Застройщик"};
+
+    private void AcceptRegistration(object sender, FieldChangedEventArgs args)
+    {
+
+    }
+
+    protected override void OnInitialized()
+    {
+        IsFormValid = false;
+        Taked_Context = new EditContext(person);
+    }
+
+    private bool IsHaveInLibrary()
+    {
+        bool answer = false;
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var condut_lib = database.GetCollection<AuthPerson>("CondutingCollection");
+        AuthPerson find = condut_lib.Find(x => x.Login == person.Login).FirstOrDefault();
+
+        if(find == null)
+        {
+            answer = true;
+        }
+        return answer;
+    }
+
+    private void SubmitForm()
+    {
+        bool isHaveInLib = IsHaveInLibrary();
+        IsFormValid = Taked_Context.Validate();
+        if (isHaveInLib == false)
+        {
+            IsFormValid = false;
+        }
+
+        if(IsFormValid == true)
+        {
+            var client = new MongoClient("mongodb://localhost");
+            var database = client.GetDatabase("Conduting_lib");
+            var condut_lib = database.GetCollection<AuthPerson>("PersonsCollection");
+            condut_lib.InsertOne(person);
+            CreateMoreInfo();
+        }
+    }
+
+    private void CreateMoreInfo()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        switch (person.Role)
+        {
+            case "Застройщик":
+                var build_lib = database.GetCollection<Builder>("BuilderCollection");
+                Builder builder = new Builder();
+                builder.CreateInfo(person.Login);
+                build_lib.InsertOne(builder);
+                break;
+            case "Проектировщик":
+                var arch_lib = database.GetCollection<Architect>("ArchitectCollection");
+                Architect architect = new Architect();
+                architect.CreateInfo(person.Login);
+                arch_lib.InsertOne(architect);
+                break;
+            case "Заказчик":
+                var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+                Consumer consumer = new Consumer();
+                consumer.CreateInfo(person.Login);
+                consum_lib.InsertOne(consumer);
+                break;
+        }
+    }
+}
+

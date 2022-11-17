@@ -1,0 +1,124 @@
+﻿@page "/Cabinet"
+@inject AuthPerson authPerson
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+<h3>Cabinet</h3>
+
+<div class="container-fluid">
+    <div>
+        <div class="row">Login: @temp_person.Login</div>
+        <br />
+        <div class="row">Password: @temp_person.Password</div>
+        <br />
+        <div class="row">Email: @temp_person.Email</div>
+        <br />
+        <div class="row">FirstPhoneNum: @(temp_person.FirstPhoneNum == null ? "Отсутствует" : temp_person.FirstPhoneNum)</div>
+        <br />
+        <br />
+
+    </div>
+
+    @switch (temp_person.Role)
+    {
+        case "Застройщик":
+            <div>
+                <div class="row">Org_Name: @(taked_builder.Org_Name == null ? "Отсутствует" : taked_builder.Org_Name)</div>
+                <br />
+                <div class="row">InEter_RegNum: @(taked_builder.InEter_RegNum == 0 ? "Отсутствует" : taked_builder.InEter_RegNum)</div>
+                <br />
+                <div class="row">Tax_IdNum: @(taked_builder.Tax_IdNum == 0 ? "Отсутствует" : taked_builder.Tax_IdNum)</div>
+                <br />
+                <div class="row">KPP: @(taked_builder.KPP == 0 ? "Отсутствует" : taked_builder.KPP)</div>
+                <br />
+                <div class="row">Address: @(taked_builder.Address == null ? "Отсутствует" : taked_builder.Address)</div>
+                <br />
+                <div class="row">Director_Name: @(taked_builder.Director_Name == null ? "Отсутствует" : taked_builder.Director_Name)</div>
+                <br />
+            </div>
+            break;
+        case "Проектировщик":
+            <div class="row">Org_Name: @(taked_architect.Org_Name == null ? "Отсутствует" : taked_architect.Org_Name)</div>
+            <br />
+            <div class="row">InEter_RegNum: @(taked_architect.InEter_RegNum == 0 ? "Отсутствует" : taked_architect.InEter_RegNum)</div>
+            <br />
+            <div class="row">Tax_IdNum: @(taked_architect.Tax_IdNum == 0 ? "Отсутствует" : taked_architect.Tax_IdNum)</div>
+            <br />
+            <div class="row">KPP: @(taked_architect.KPP == 0 ? "Отсутствует" : taked_architect.KPP)</div>
+            <br />
+            <div class="row">Address: @(taked_architect.Address == null ? "Отсутствует" : taked_architect.Address)</div>
+            <br />
+            <div class="row">Director_Name: @(taked_architect.Director_Name == null ? "Отсутствует" : taked_architect.Director_Name)</div>
+            <br />
+            <div class="row">MainEngineer_Name: @(taked_architect.MainEngineer_Name == null ? "Отсутствует" : taked_architect.Director_Name)</div>
+            <br />
+            break;
+        case "Заказчик":
+            <div class="row">Department: @(taked_consumer.Department == null ? "Отсутствует" : (taked_consumer.Department))</div>
+            <br />
+            <div class="row">Post: @(taked_consumer.Post == null ? "Отсутствует" : taked_consumer.Post)</div>
+            <br />
+            break;
+    }
+
+    <div class="row">
+        <div class="col">
+            <button class="active" @onclick="EditInfoSwitch">
+                EditInfo
+            </button>
+        </div>
+        <div class="col">
+            <button class="active" @onclick="LogOut">
+                Log out
+            </button>
+        </div>
+    </div>
+    
+</div>
+
+@code {
+    AuthPerson temp_person = new AuthPerson();
+    private bool EditingMode = false;
+    private Builder taked_builder = new Builder();
+    private Architect taked_architect = new Architect();
+    private Consumer taked_consumer = new Consumer();
+
+    private void EditInfoSwitch()
+    {
+        Navigation.NavigateTo("/CabinetEditor");
+    }
+
+    private void LogOut()
+    {
+        AuthPerson authPerson1 = new AuthPerson();
+        authPerson.CloneFrom(authPerson1);
+        Navigation.NavigateTo("/AuthForm");
+    }
+
+    private void FindMoreInfo()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        switch (authPerson.Role)
+        {
+            case "Застройщик":
+                var build_lib = database.GetCollection<Builder>("BuilderCollection");
+                taked_builder = build_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+            case "Проектировщик":
+                var arch_lib = database.GetCollection<Architect>("ArchitectCollection");
+                taked_architect = arch_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+            case "Заказчик":
+                var consum_lib = database.GetCollection<Consumer>("ConsumerCollection");
+                taked_consumer = consum_lib.Find(x => x.Login == authPerson.Login).FirstOrDefault();
+                break;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        temp_person.CloneFrom(authPerson);
+        FindMoreInfo();
+        base.OnInitialized();
+    }
+}

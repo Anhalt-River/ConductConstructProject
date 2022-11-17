@@ -1,0 +1,219 @@
+﻿@page "/projectPage"
+@inject AuthPerson authPerson
+@inject UseProject useProject
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+@inject IJSRuntime jsRuntime
+@*@using BlazorInputFile*@
+@using System.IO
+@using ConductingConstructionProjects.Data
+
+<h3>Project</h3>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <div hidden="@(!IsProjectSaved)" style="color: greenyellow">Проект был сохранен сохранен</div>
+            <button @onclick="Save">Save Project</button>
+            @switch (authPerson.Role)
+            {
+                case "Заказчик":
+                    <button @onclick="CreateDoc">Add Document</button>
+                break;
+            }
+            @if (authPerson.Role == "Заказчик" || authPerson.Role == "Проектировщик")
+            {
+                <button class="alert-dark" @onclick="AttachToThePrInfo"> Attach project information </button>
+            }
+            
+            <div style="color: brown">Нормативные документы</div>
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col"> Name </th>
+                        <th scope="col"> Status </th>
+                        <th scope="col"> Filling requirement </th>
+                        <th scope="col"> File </th>
+                        @switch (authPerson.Role)
+                        {
+                            case "Заказчик":
+                                <th scope="col"> Delete file </th>
+                                break;
+                            default:
+                                break;
+                        }
+                    </tr>
+                </thead>
+                @foreach (var doc in taked_project.Docs)
+                {
+                    <tr style="@(doc.Status ? "color: green" : "color: red")">
+                        <td> <div> @doc.CotroledDoc.Description</div> </td>
+                        @switch (authPerson.Role)
+                        {
+                            case "Заказчик":
+                                <td> <button class="btn-info" @onclick="@(() => ChooseRequirement(doc))"> @doc.Requirement </button> </td>
+                                <td> <button class="table-active" @onclick="@(() => ChooseStatus(doc))"> @doc.Status </button> </td>
+                                break;
+                            default:
+                                <td> @doc.Requirement </td>
+                                <td> <div style="@(doc.Status? "color: red" : "color: green")"> @doc.Status </div> </td>
+                                break;
+                        }
+                        
+                        @switch(authPerson.Role)
+                        {
+                            case "Заказчик":
+                            <td>
+                                 <button @onclick="@(() => GiveFile(doc))"></button>
+                            </td>
+                                break;
+                            default:
+                                <td>
+                                    <InputFile OnChange="@(e => HandleFileSelected(e, doc))"/>
+                                    @*<BlazorInputFile.InputFile OnChange="@(e => TakeFile(e, doc))" />*@
+                                </td> @*Бросок файла*@
+                                break;
+                        }
+                        
+                        @switch (authPerson.Role)
+                        {
+                            case "Заказчик":
+                                <td> <button class="btn btn-danger" @onclick="@(() => DeleteDoc(doc))">Delete this document</button> </td>
+                                break;
+                            default:
+                                break;
+                        }
+                    </tr>
+                }
+            </table>
+            @switch (authPerson.Role)
+            {
+                case "Заказчик":
+                    <div> Назначенный проектировщик: <input @bind="taked_project.Architect" /></div>
+                    <div> Назначенный застройщик: <input @bind="taked_project.Builder" /></div>
+                    break;
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool IsProjectSaved = false;
+    Project taked_project = new Project();
+
+    protected override void OnInitialized()
+    {
+        if (useProject != null)
+        {
+            taked_project.CloneFrom(useProject);
+        }
+    }
+
+    private async Task Upload(InputFileChangeEventArgs e)
+    {
+        Stream new_stream = e.File.OpenReadStream();
+
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("ProjectsCollection");
+        var gridFS = new GridFSBucket(database);
+        await gridFS.UploadFromStreamAsync(e.File.Name, new_stream);
+
+        new_stream.Dispose();
+    }
+
+    private void AttachToThePrInfo()
+    {
+        Navigation.NavigateTo("/StandForm");
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e, DocCell docCell)
+    {
+        @*using (FileStream fs = new FileStream(e.File.Name, FileMode.OpenOrCreate))
+        {
+            docCell.CotroledDoc.Attachment = new byte[fs.Length];
+        }*@
+
+        @*MemoryStream ms = new MemoryStream();
+        await e.File.OpenReadStream().CopyToAsync(ms);
+        var bytes = ms.ToArray();
+
+
+        taked_project.Docs.Remove(docCell);
+        docCell.CotroledDoc.Attachment = bytes;
+        taked_project.Docs.Add(docCell);*@
+    }
+
+    @*
+    private async void TakeFile(IFileListEntry[] files, DocCell docCell)
+    {
+        var attach = await FileSender(files.FirstOrDefault());
+        taked_project.Docs.Remove(docCell);
+        docCell.CotroledDoc.Attachment = attach;
+        taked_project.Docs.Add(docCell);
+
+    }
+
+    private async Task<byte[]> FileSender(IFileListEntry file)
+    {
+        using (var ms = new System.IO.MemoryStream())
+        {
+            await file.Data.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+    }
+    *@
+
+    private void GiveFile(DocCell docCell)
+    {
+        IsProjectSaved = false;
+        var document = docCell.CotroledDoc;
+        jsRuntime.InvokeVoidAsync("saveAsFile", "PdfFileName", docCell.CotroledDoc.Attachment);
+    }
+    @*
+    private void FileChoose(IFileListEntry[] files, DocCell docCell)
+    {
+
+    }
+    *@
+
+    private void ChooseRequirement(DocCell docCell)
+    {
+        IsProjectSaved = false;
+        taked_project.Docs.Remove(docCell);
+        docCell.Requirement = !docCell.Requirement;
+        taked_project.Docs.Add(docCell);
+    }
+
+    private void ChooseStatus(DocCell docCell)
+    {
+        IsProjectSaved = false;
+        docCell.Status = !docCell.Status;
+    }
+
+    private void Save()
+    {
+        var client = new MongoClient("mongodb://localhost");
+        var database = client.GetDatabase("Conduting_lib");
+        var projects_lib = database.GetCollection<Project>("ProjectsCollection");
+        var search = projects_lib.Find(x => x.Name == taked_project.Name).FirstOrDefault();
+        projects_lib.ReplaceOne(x => x.Name == taked_project.Name, taked_project);
+        
+        useProject = null;
+        IsProjectSaved = true;
+    }
+
+    private void DeleteDoc(DocCell docCell)
+    {
+        IsProjectSaved = false;
+        taked_project.Docs.Remove(docCell);
+    }
+
+    private void CreateDoc()
+    {
+        useProject = null;
+        Navigation.NavigateTo("/DocStation");
+        @*DocCell new_docCell = new DocCell();
+        new_docCell.CotroledDoc = new Document();
+        new_docCell.Status = true;
+        taked_project.Docs.Add(new_docCell);*@
+    }
+}
